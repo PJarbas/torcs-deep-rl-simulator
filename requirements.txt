@@ -1,0 +1,13 @@
+gymnasium>=0.29.1
+numpy
+torch
+stable-baselines3>=2.1.0
+opencv-python
+fastapi
+uvicorn[standard]
+python-multipart
+pillow
+pyyaml
+requests
+pytest
+shimmy>=2.0

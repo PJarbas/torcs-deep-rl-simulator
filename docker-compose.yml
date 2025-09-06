@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  torcs:
+    build:
+      context: .
+      dockerfile: Dockerfile.torcs
+    ports:
+      - "3001:3001"
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - torcs

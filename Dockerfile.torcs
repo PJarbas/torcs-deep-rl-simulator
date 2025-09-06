@@ -1,0 +1,16 @@
+FROM ubuntu:20.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y \
+    git build-essential cmake freeglut3-dev libxmu-dev libxi-dev libxrender-dev libxrandr-dev libjpeg-dev libpng-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /torcs
+
+RUN git clone https://github.com/fmirus/torcs.git . && \
+    ./configure && \
+    make && \
+    make install
+
+CMD ["torcs"]

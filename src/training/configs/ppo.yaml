@@ -1,0 +1,17 @@
+algorithm: PPO
+vision: true
+total_timesteps: 50000
+agent_kwargs:
+  learning_rate: 0.0003
+  n_steps: 512        # Reduced for faster updates
+  batch_size: 64      # Smaller batch size for CPU
+  n_epochs: 5         # Fewer epochs per update
+  gamma: 0.99
+  ent_coef: 0.01     # Entropy coefficient for exploration
+  clip_range: 0.2    # PPO clip range
+  policy_kwargs:
+    net_arch:
+      pi: [64, 64]   # Policy network
+      vf: [64, 64]   # Value function network
+    features_extractor_kwargs:
+      features_dim: 512
