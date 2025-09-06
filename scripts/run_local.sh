@@ -9,12 +9,18 @@ fi
 # Instalar dependências se não existirem
 pip install -r requirements.txt
 
+# Criar diretórios necessários
+mkdir -p models results/training results/demo
+
+# Adicionar src ao PYTHONPATH
+export PYTHONPATH="${PYTHONPATH:-.}:$(pwd)/src"
+
 case "$1" in
   train)
     echo "🚀 Iniciando treinamento PPO local..."
     echo "📊 Métricas: results/training/"
     echo "💾 Modelo: models/ppo_torcs.zip"
-    python training/train.py --config training/configs/ppo.yaml
+    python3 src/training/train.py --config src/training/configs/ppo.yaml
     ;;
   play)
     echo "🎮 Rodando agente treinado (demo)..."
@@ -24,7 +30,7 @@ case "$1" in
   web)
     echo "🌐 Iniciando servidor web..."
     echo "💻 Interface disponível em: http://localhost:8000"
-    uvicorn web.app:app --host 0.0.0.0 --port 8000
+    uvicorn src.web.app:app --host 0.0.0.0 --port 8000
     ;;
   *)
     echo "🔧 Uso: $0 {train|play|web}"

@@ -15,7 +15,9 @@ fi
 echo "🎮 Iniciando demonstração do agente treinado..."
 echo "🎥 Os vídeos e métricas serão salvos em results/demo/"
 
-python -m scripts.play_agent \
+export PYTHONPATH="${PYTHONPATH:-.}:$(pwd)/src"
+
+python3 scripts/play_agent.py \
     --model models/ppo_torcs.zip \
     --episodes 3 \
     --render True \
