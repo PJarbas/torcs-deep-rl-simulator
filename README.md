@@ -122,6 +122,30 @@ python src/training/train.py --config src/training/configs/ppo.yaml
 python src/training/train.py --config src/training/configs/sac.yaml
 ```
 
+Training will automatically:
+- 📊 Generate training metrics and visualizations
+- 📈 Track episode rewards and learning progress
+- 🎥 Record videos of training episodes (optional)
+- 💾 Save model checkpoints
+
+### 🎮 Playing with Trained Agents
+
+To run a trained agent and optionally record videos:
+
+```bash
+python scripts/play_agent.py \
+  --model models/ppo_torcs \  # Path to trained model
+  --episodes 5 \             # Number of episodes to run
+  --record-video \          # Enable video recording
+  --output results/demo     # Output directory for videos and metrics
+```
+
+The script will:
+- 🎥 Record videos of the agent's performance
+- 📊 Collect performance metrics
+- 💾 Save a detailed evaluation summary
+- 📈 Display real-time progress
+
 ### ⚙️ Configuration
 
 Customize your training with YAML configuration files:

@@ -33,16 +33,33 @@ class CnnFeatureExtractor(BaseFeaturesExtractor):
             
         img_space = observation_space.spaces["image"]
         if len(img_space.shape) != 3:
-            raise ValueError(f"Image space must be 3D (HxWxC), got shape {img_space.shape}")
+            raise ValueError(f"Image space must be 3D, got shape {img_space.shape}")
             
-        height, width, channels = img_space.shape
-        if height != 84 or width != 84:
-            raise ValueError(f"Image must be 84x84, got {height}x{width}")
+        # Handle both CHW and HWC formats
+        if img_space.shape[0] == 3:  # CHW format
+            channels, height, width = img_space.shape
+        else:  # HWC format
+            height, width, channels = img_space.shape
             
-        # Adjusted CNN for image processing (84x84x3 -> features)
+        if not ((height == 84 and width == 84) or (height == 3 and width == 84)):
+            raise ValueError(f"Image must be either 84x84x3 (HWC) or 3x84x84 (CHW), got shape {img_space.shape}")
+            
+        # Convert dimensions to NCHW format for CNN
+        if height == 84:  # If in HWC format, rearrange to CHW
+            self.input_channels = channels
+            self.input_height = height
+            self.input_width = width
+        else:  # Already in CHW format
+            self.input_channels = height  # height is actually channels in this case
+            self.input_height = width     # width is actually height in this case
+            self.input_width = channels   # channels is actually width in this case
+            
+        logger.info(f"Input format: channels={self.input_channels}, height={self.input_height}, width={self.input_width}")
+            
+        # CNN for image processing
         self.cnn = nn.Sequential(
-            # First conv layer: 84x84x3 -> 42x42x32
-            nn.Conv2d(channels, 32, kernel_size=3, stride=2, padding=1),
+            # First conv layer: input -> 42x42x32
+            nn.Conv2d(self.input_channels, 32, kernel_size=3, stride=2, padding=1),
             nn.ReLU(),
             # Second conv layer: 42x42x32 -> 21x21x64
             nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),
@@ -56,7 +73,7 @@ class CnnFeatureExtractor(BaseFeaturesExtractor):
         # Calculate CNN output size
         with th.no_grad():
             # Create dummy tensor with correct dimensions (NCHW format)
-            dummy_input = th.zeros(1, channels, height, width)
+            dummy_input = th.zeros(1, self.input_channels, self.input_height, self.input_width)
             try:
                 n_flatten = self.cnn(dummy_input).shape[1]
                 logger.info(f"CNN will output {n_flatten} features")
@@ -85,8 +102,10 @@ class CnnFeatureExtractor(BaseFeaturesExtractor):
             nn.ReLU(),
         )
         
-        # Store expected dimensions for validation
-        self.expected_img_shape = (height, width, channels)
+        # Store expected dimensions for validation (in NCHW format)
+        self.expected_channels = self.input_channels
+        self.expected_height = self.input_height
+        self.expected_width = self.input_width
         self.expected_state_dim = state_dim
     
     def forward(self, observations: Dict[str, th.Tensor]) -> th.Tensor:
@@ -107,14 +126,11 @@ class CnnFeatureExtractor(BaseFeaturesExtractor):
             
         img = observations["image"]
         state = observations["state"]
-
+        
         # Log input dimensions for debugging
-        logger.info(f"Image shape: {img.shape}, Expected: {self.expected_img_shape}")
-        logger.info(f"State shape: {state.shape}, Expected: ({self.expected_state_dim},)")
+        logger.debug(f"Image shape: {img.shape}, Expected channels={self.expected_channels}, height={self.expected_height}, width={self.expected_width}")
+        logger.debug(f"State shape: {state.shape}, Expected dim={self.expected_state_dim}")
 
-        if img.shape[-3:] != self.expected_img_shape:
-            raise ValueError(f"Expected image shape {self.expected_img_shape}, got {img.shape[-3:]}")
-            
         try:
             # Process images
             if len(img.shape) == 3:  # Single image
@@ -123,13 +139,19 @@ class CnnFeatureExtractor(BaseFeaturesExtractor):
             # Log shape before processing
             logger.debug(f"Image tensor shape before processing: {img.shape}")
             
-            # Ensure image is in the correct format and normalize
-            image_tensor = img.float()
-            if image_tensor.shape[-1] == 3:  # If channels are last (NHWC)
-                image_tensor = image_tensor.permute(0, 3, 1, 2)  # Convert to NCHW
-            image_tensor = image_tensor.div(255.0)
+            # Normalize and ensure NCHW format
+            image_tensor = img.float().div(255.0)
             
-            # Log shape after processing
+            # Validate dimensions (ignoring batch size)
+            if img.shape[1:] != (self.expected_channels, self.expected_height, self.expected_width):
+                if img.shape[-1] == self.expected_channels:  # If channels are last
+                    image_tensor = image_tensor.permute(0, 3, 1, 2)  # NHWC -> NCHW
+                else:
+                    raise ValueError(
+                        f"Invalid image dimensions. Expected (B, {self.expected_channels}, {self.expected_height}, {self.expected_width}), "
+                        f"got {img.shape}"
+                    )
+            
             logger.debug(f"Image tensor shape after processing: {image_tensor.shape}")
             
             # Process through CNN
