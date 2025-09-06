@@ -11,7 +11,8 @@ agent_kwargs:
   clip_range: 0.2    # PPO clip range
   policy_kwargs:
     net_arch:
-      pi: [64, 64]   # Policy network
-      vf: [64, 64]   # Value function network
+      pi: [128, 64]   # Policy network architecture
+      vf: [128, 64]   # Value function network architecture
     features_extractor_kwargs:
-      features_dim: 512
+      features_dim: 512  # Dimensão final das features combinadas
+    normalize_images: true  # Normaliza as imagens automaticamente
