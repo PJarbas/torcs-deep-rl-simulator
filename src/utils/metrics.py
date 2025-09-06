@@ -33,7 +33,7 @@ class TrainingMetrics:
         self.video_path = None
         
         # Set style for plots
-        plt.style.use('seaborn')
+        sns.set_theme(style="darkgrid")
         sns.set_palette("husl")
         
     def add_metrics(self, info_dict: Dict) -> None:

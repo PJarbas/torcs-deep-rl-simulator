@@ -4,6 +4,7 @@ import torch
 import numpy as np
 import numpy.typing as npt
 from stable_baselines3 import PPO
+from stable_baselines3.common.callbacks import BaseCallback
 from gymnasium import spaces
 from gymnasium.core import Env
 import logging
@@ -84,15 +85,19 @@ class PPOAgent(BaseAgent):
         action, _ = self.model.predict(observation, deterministic=deterministic)
         return action
 
-    def train(self, total_timesteps: int) -> None:
+    def train(self, total_timesteps: int, callback: Optional[BaseCallback] = None) -> None:
         """Train the agent.
         
         Args:
             total_timesteps: Total number of timesteps to train for
+            callback: Optional callback for tracking training progress
         """
-        self.model.learn(total_timesteps=total_timesteps)
+        self.model.learn(total_timesteps=total_timesteps, callback=callback)
+        
         # Save the trained model
-        self.save("models/ppo_torcs")
+        save_path = "models/ppo_torcs"
+        logger.info(f"Saving model to {save_path}")
+        self.save(save_path)
 
     def save(self, path: str) -> None:
         """Save the agent to disk.
