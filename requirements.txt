@@ -4,6 +4,7 @@ numpy>=1.24.0
 torch>=2.0.0
 stable-baselines3>=2.1.0
 shimmy>=2.0.0
+psutil>=5.9.0  # For process management
 
 # Image processing and visualization
 matplotlib>=3.7.0
