@@ -1,6 +1,18 @@
 algorithm: PPO
-vision: true
+
+# Environment settings
+env_config:
+  vision: true
+  rendering: true     # Whether to show TORCS window
+  auto_start: true   # Whether to auto-start TORCS
+  host: "localhost"
+  port: 3001
+
+# Training settings
 total_timesteps: 50000
+log_interval: 10      # Log every N episodes
+save_interval: 5000   # Save model every N steps
+
 agent_kwargs:
   learning_rate: 0.0003
   n_steps: 512        # Reduced for faster updates

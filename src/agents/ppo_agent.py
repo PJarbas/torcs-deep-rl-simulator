@@ -85,19 +85,48 @@ class PPOAgent(BaseAgent):
         action, _ = self.model.predict(observation, deterministic=deterministic)
         return action
 
-    def train(self, total_timesteps: int, callback: Optional[BaseCallback] = None) -> None:
+    def train(
+        self, 
+        total_timesteps: int, 
+        callback: Optional[BaseCallback] = None,
+        save_interval: int = 5000,
+        log_interval: int = 10
+    ) -> None:
         """Train the agent.
         
         Args:
             total_timesteps: Total number of timesteps to train for
             callback: Optional callback for tracking training progress
+            save_interval: Save checkpoint every N steps
+            log_interval: Log progress every N episodes
         """
-        self.model.learn(total_timesteps=total_timesteps, callback=callback)
-        
-        # Save the trained model
-        save_path = "models/ppo_torcs"
-        logger.info(f"Saving model to {save_path}")
-        self.save(save_path)
+        try:
+            self.logger.info("Starting training with parameters:")
+            self.logger.info(f"  Total timesteps: {total_timesteps}")
+            self.logger.info(f"  Save interval: {save_interval}")
+            self.logger.info(f"  Log interval: {log_interval}")
+            
+            # Configure model logging
+            self.model.set_logger(self.logger)
+            
+            # Train the model
+            self.logger.info("Training started...")
+            self.model.learn(
+                total_timesteps=total_timesteps,
+                callback=callback,
+                log_interval=log_interval,
+                progress_bar=True
+            )
+            self.logger.info("Training completed successfully")
+            
+            # Save the final model
+            save_path = "models/ppo_torcs"
+            self.logger.info(f"Saving final model to {save_path}")
+            self.save(save_path)
+            
+        except Exception as e:
+            self.logger.error(f"Training failed: {str(e)}")
+            raise
 
     def save(self, path: str) -> None:
         """Save the agent to disk.

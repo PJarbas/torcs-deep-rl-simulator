@@ -7,7 +7,31 @@ from src.utils.metrics import TrainingMetrics
 from stable_baselines3.common.callbacks import BaseCallback
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+def setup_logging(output_dir: Path) -> None:
+    """Configure logging to both file and console."""
+    log_file = output_dir / "training.log"
+    
+    # Create file handler
+    file_handler = logging.FileHandler(log_file)
+    file_handler.setLevel(logging.DEBUG)
+    file_formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    file_handler.setFormatter(file_formatter)
+    
+    # Create console handler
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    console_formatter = logging.Formatter('%(levelname)s: %(message)s')
+    console_handler.setFormatter(console_formatter)
+    
+    # Configure root logger
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.DEBUG)
+    root_logger.addHandler(file_handler)
+    root_logger.addHandler(console_handler)
+
+# Get module logger
 logger = logging.getLogger(__name__)
 
 class MetricsCallback(BaseCallback):
@@ -44,22 +68,44 @@ class MetricsCallback(BaseCallback):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", required=True)
-    parser.add_argument("--output", default="results", help="Output directory for results")
+    parser.add_argument("--config", required=True, help="Path to training configuration file")
+    parser.add_argument("--output", default="results/training", help="Output directory for results")
+    parser.add_argument("--debug", action="store_true", help="Enable debug logging")
     args = parser.parse_args()
-
-    # Load config
-    with open(args.config) as f:
-        config = yaml.safe_load(f)
 
     # Create output directory
     output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Setup logging
+    setup_logging(output_dir)
+    if args.debug:
+        logger.setLevel(logging.DEBUG)
+
+    # Load and validate config
+    try:
+        with open(args.config) as f:
+            config = yaml.safe_load(f)
+        logger.debug(f"Loaded configuration: {config}")
+    except Exception as e:
+        logger.error(f"Failed to load config file: {e}")
+        raise
+
+    # Get environment config
+    env_config = config.get("env_config", {})
+    logger.info("Initializing TORCS environment with config:")
+    for key, value in env_config.items():
+        logger.info(f"  {key}: {value}")
 
     # Initialize environment
-    env = TorcsEnv(vision=config.get("vision", True))
+    try:
+        env = TorcsEnv(**env_config)
+        logger.info("TORCS environment initialized successfully")
+    except Exception as e:
+        logger.error(f"Failed to initialize TORCS environment: {e}")
+        raise
 
-    # Initialize metrics
+    # Initialize metrics and callback
     metrics = TrainingMetrics(save_dir=str(output_dir))
     callback = MetricsCallback(metrics)
 
